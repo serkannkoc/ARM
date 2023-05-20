@@ -1,0 +1,79 @@
+;******************** (C) Yifeng ZHU *******************************************
+; @file    main.s
+; 
+; Q2. In this question, you will implement an assembly program that reads two strings, convert
+;	all uppercase letters to lowercase ones in the first string, and convert all lowercase letters
+;	to uppercase ones in the second string. First, you should initialize two null-terminated
+;	strings and allocate two blocks of zeroed memory in the DATA area. In the CODE area,
+;	read the strings char-by-char, make the necessary conversion, and write them back to the
+;	allocated memory blocks
+; 
+;*******************************************************************************
+
+	INCLUDE core_cm4_constants.s		; Load Constant Definitions
+	INCLUDE stm32l476xx_constants.s      
+
+	AREA    main, CODE, READONLY
+	EXPORT	__main				; make __main visible to linker
+	ENTRY			
+				
+__main	PROC
+	
+	; Read first string and convert uppercase letters to lowercase
+    LDR R0, =str1
+    LDR R1, =buff1
+	
+loop1
+    LDRB R2, [R0], #1       ; Load a character from str1
+    CMP R2, #0              ; Check if null terminator is reached
+    BEQ done1               ; If yes, terminate loop
+    CMP R2, #'A'            ; Check if character is uppercase letter
+    BLT not_upper          ; If not, skip to next character
+    CMP R2, #'Z'            ; Check if character is within range of uppercase letters
+    BGT not_upper          ; If not, skip to next character
+    ADD R2, R2, #'a' - 'A'  ; Convert uppercase letter to lowercase
+
+not_upper 
+	STRB R2, [R1], #1       ; Store the converted character in buff1
+	B loop1
+	
+done1
+    MOV R2, #0              ; Add null terminator to buff1
+    STRB R2, [R1]
+	 ; Read second string and begin to convert lowercase letters to uppercase
+    LDR R0, =str2
+    LDR R1, =buff2
+
+loop2
+    LDRB R2, [R0], #1       ; Load a character from str2
+    CMP R2, #0              ; Check if null terminator is reached
+    BEQ done2               ; If yes, terminate loop
+    CMP R2, #'a'            ; Check if character is lowercase letter
+    BLT not_lower          ; If not, skip to next character
+    CMP R2, #'z'            ; Check if character is within range of lowercase letters
+    BGT not_lower          ; If not, skip to next character
+    SUB R2, R2, #'a' - 'A'  ; Convert lowercase letter to uppercase
+
+not_lower
+    STRB R2, [R1], #1       ; Store the converted character in buff2
+    B loop2
+
+done2
+    MOV R2, #0              ; Add null terminator to buff2
+    STRB R2, [R1]
+
+stop    B stop               ; End of program, loop indefinitely
+	
+	ENDP
+
+	ALIGN			
+	AREA    myData, DATA, READWRITE
+	ALIGN
+str1	DCB	"AaBbCcDd.", 0 ; First string
+str2	DCB "CDcd.", 0	; Second string
+buff1       SPACE 20  ; Buffer for first string
+buff2       SPACE 20  ; Buffer for second string
+	END
+		
+	
+

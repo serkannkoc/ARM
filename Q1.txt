@@ -1,0 +1,106 @@
+;******************** (C) Yifeng ZHU *******************************************
+; @file    main.s
+; @author  Yifeng Zhu
+; @date    May-17-2015
+; @note
+;           This code is for the book "Embedded Systems with ARM Cortex-M 
+;           Microcontrollers in Assembly Language and C, Yifeng Zhu, 
+;           ISBN-13: 978-0982692639, ISBN-10: 0982692633
+; @attension
+;           This code is provided for education purpose. The author shall not be 
+;           held liable for any direct, indirect or consequential damages, for any 
+;           reason whatever. More information can be found from book website: 
+;           http:;www.eece.maine.edu/~zhu/book
+;*******************************************************************************
+
+
+	INCLUDE core_cm4_constants.s		; Load Constant Definitions
+	INCLUDE stm32l476xx_constants.s      
+	
+	AREA    main, CODE, READONLY
+	EXPORT	__main				; make __main visible to linker
+	ENTRY			
+				
+__main	PROC
+	
+	LDR R0, =str1 ;loading string 1 to r0
+	LDRB R1, [R0], #1 ;loading 1 byte to r1 and then update r0 by r0+1
+	
+check	; Check if the byte is a valid hexadecimal digit
+	CMP R1, #'0' ;comparing the byte with ascii value of 0
+	BLO invalid_digit ; if ascii value of the byte is lower than the ascii value of 0 go to invalid digit
+	CMP R1, #'9' ; comparing the byte with ascii value of 9
+	BHI letter_check ; if ascii value of the byte is greater than the ascii value of 9 go to letter check
+	B valid_digit ; this means the byte is a valid digit
+
+letter_check
+	CMP R1, #'A' ; comparing the byte with ascii value of A
+	BLO invalid_digit ; if ascii value of the byte is lower than the ascii value of A go to invalid digit
+	CMP R1, #'F' ; comparing the byte with ascii value of F
+	BHI lowercase_check ; if ascii value of the byte is greater than the ascii value of F go to lowercase check
+	B valid_digit ; this means the byte is a valid uppercase letter
+
+lowercase_check
+	CMP R1, #'a' ; comparing the byte with ascii value of a
+	BLO invalid_digit ; if ascii value of the byte is lower than the ascii value of a go to invalid digit
+	CMP R1, #'f' ; comparing the byte with ascii value of f
+	BHI invalid_digit ; if ascii value of the byte is greater than the ascii value of f go to invalid check
+	B valid_digit ; this means the byte is a valid lowercase letter
+
+invalid_digit B invalid_digit ;infinite loop
+
+valid_digit B loop
+
+loop	
+	SUB R3, R1, #48 ; r3=r1-'0' 
+	CMP R3, #9 ; if r3 is less than 9 that means r1 is a digit
+	BLE digit_func ; if r1 is a digit go to digit_func
+	
+	SUB R1, R1, #55 ; converting the r1 into integer
+	ADD R2, R1, R2 ; r2 = r1+r2
+	LSL R2, #4 ; shifting r2 4 times left
+	
+	LDRB R1, [R0], #1 ;loading 1 byte to r1 and then update r0 by r0+1
+	CMP R1, #0 ; checking if string loading is finished
+	BNE check
+
+one_right_of_str1 
+	LSR R2, #4 ; one extra left shift is cancelled here with shift right
+	CMP R7, #1 ; flag to convert the second string into int
+	BEQ calculate_sub ; if both strings are converted to int go to sub
+	B one_right_of_str2
+	
+one_right_of_str2
+	ADD R7, R7, #1 ; updating flag
+	MOV R5, R2 ; moved int1 to r5 since we need r2 again
+	AND R2, R2, #0 ; zeroed r2
+	LDR R0, =str2 ; loading address of str2 to r0
+	LDRB R1, [R0], #1 ; ;loading 1 byte of string2 to r1 and then update r0 by r0+1
+	B check
+
+calculate_sub
+	SUB R6, R5, R2 ; r6=int1-int2
+	STR R6, [R0] ; storing the result to the memory
+	B stop
+	
+stop 	B 		stop     		; R2 will be str2 and R5 will be str1
+
+digit_func
+	SUB R1, R1, #48 ; r1= r1-'0'
+	ADD R2, R1, R2 ; r2 = r1+r2
+	LSL R2, #4 ; shifting r2 4 times left
+	LDRB R1, [R0], #1 ;loading 1 byte to r1 and then update r0 by r0+1
+	CMP R1, #0 ;check if end of the string
+	BEQ one_right_of_str1
+	B check
+	
+	ENDP
+
+	ALIGN			
+	AREA    myData, DATA, READWRITE
+	ALIGN
+str1	DCB	"ABCD", 0 ; First string
+str2	DCB "CD", 0 ; Second string 
+	END
+		
+	
